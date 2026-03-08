@@ -1,4 +1,4 @@
-import { Trophy, Calendar, User, Search } from 'lucide-react';
+import { Trophy, Calendar, User, Search, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +14,11 @@ export default function Navbar() {
 
             <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                 <Link to="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}><Search size={20} /></Link>
+                {user && (
+                    <Link to="/create-event" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
+                        <Plus size={20} />
+                    </Link>
+                )}
                 <Link to="/dashboard" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}><Calendar size={20} /></Link>
                 <Link to={user ? "/dashboard" : "/auth"} style={{ color: user ? 'var(--primary)' : 'var(--text-secondary)', textDecoration: 'none' }}>
                     <User size={20} />
