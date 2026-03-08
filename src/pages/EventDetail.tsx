@@ -57,7 +57,7 @@ export default function EventDetail() {
             const { error } = await supabase
                 .from('registrations')
                 .insert({
-                    user_id: user.id,
+                    user_id: user?.id,
                     event_id: id,
                     status: 'confirmed'
                 });

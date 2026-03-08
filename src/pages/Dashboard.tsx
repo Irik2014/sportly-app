@@ -31,6 +31,7 @@ export default function Dashboard() {
         }
 
         async function fetchDashboardData() {
+            if (!user) return;
             // Fetch profile
             const { data: profileData } = await supabase
                 .from('profiles')
