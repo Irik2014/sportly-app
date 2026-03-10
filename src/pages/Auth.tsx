@@ -27,7 +27,20 @@ export default function Auth() {
                         data: { full_name: fullName }
                     }
                 });
-                if (signUpError) throw signUpError;
+                
+                if (signUpError) {
+                    if (signUpError.message.includes('User already registered')) {
+                        // If they are already registered, try to sign them in instead
+                        const { error: signInError } = await supabase.auth.signInWithPassword({
+                            email,
+                            password,
+                        });
+                        if (signInError) throw signInError;
+                    } else {
+                        throw signUpError;
+                    }
+                }
+
                 if (data.user) {
                     // Create profile in profiles table
                     const { error: profileError } = await supabase
@@ -42,9 +55,17 @@ export default function Auth() {
                 });
                 if (signInError) throw signInError;
             }
-            navigate('/dashboard');
+            
+            // Wait a moment for session to sync before navigating
+            setTimeout(() => navigate('/dashboard'), 500);
         } catch (err: any) {
-            setError(err.message);
+            let userFriendlyMsg = err.message;
+            if (err.message.includes('rate limit')) {
+                userFriendlyMsg = "Too many attempts! Please wait 5-10 minutes and try again.";
+            } else if (err.message.includes('Invalid login credentials')) {
+                userFriendlyMsg = "Wrong email or password. Please try again.";
+            }
+            setError(userFriendlyMsg);
         } finally {
             setLoading(false);
         }
