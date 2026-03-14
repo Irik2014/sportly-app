@@ -19,6 +19,8 @@ export default function Auth() {
         setError(null);
 
         try {
+            let sessionObj = null;
+
             if (isSignUp) {
                 const { data, error: signUpError } = await supabase.auth.signUp({
                     email,
@@ -31,17 +33,20 @@ export default function Auth() {
                 if (signUpError) {
                     if (signUpError.message.includes('User already registered')) {
                         // If they are already registered, try to sign them in instead
-                        const { error: signInError } = await supabase.auth.signInWithPassword({
+                        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                             email,
                             password,
                         });
                         if (signInError) throw signInError;
+                        sessionObj = signInData?.session;
                     } else {
                         throw signUpError;
                     }
+                } else {
+                    sessionObj = data?.session;
                 }
 
-                if (data.user) {
+                if (data?.user) {
                     // Create profile in profiles table
                     const { error: profileError } = await supabase
                         .from('profiles')
@@ -49,21 +54,34 @@ export default function Auth() {
                     if (profileError) console.error("Profile creation error:", profileError);
                 }
             } else {
-                const { error: signInError } = await supabase.auth.signInWithPassword({
+                const { data, error: signInError } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
                 if (signInError) throw signInError;
+                sessionObj = data?.session;
             }
             
             // Wait a moment for session to sync before navigating
-            setTimeout(() => navigate('/dashboard'), 500);
+            if (isSignUp && !sessionObj) {
+                // Supabase requires email confirmation
+                setFullName('');
+                setPassword('');
+                setIsSignUp(false);
+                throw new Error("signup_success_confirm_email");
+            } else {
+                setTimeout(() => navigate('/dashboard'), 500);
+            }
         } catch (err: any) {
             let userFriendlyMsg = err.message;
-            if (err.message.includes('rate limit')) {
+            if (err.message === "signup_success_confirm_email") {
+                userFriendlyMsg = "Success! Please check your email to verify your account before signing in.";
+            } else if (err.message.includes('rate limit')) {
                 userFriendlyMsg = "Too many attempts! Please wait 5-10 minutes and try again.";
             } else if (err.message.includes('Invalid login credentials')) {
                 userFriendlyMsg = "Wrong email or password. Please try again.";
+            } else if (err.message.includes('Email not confirmed')) {
+                 userFriendlyMsg = "Please check your inbox and confirm your email address to sign in.";
             }
             setError(userFriendlyMsg);
         } finally {
